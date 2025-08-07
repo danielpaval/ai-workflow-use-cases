@@ -1,0 +1,12 @@
+model = "gpt-4.1" 
+
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem"]
+
+[history]
+persistence = "none"
+
+sandbox_mode = "read-only"
+
+hide_agent_reasoning = true
