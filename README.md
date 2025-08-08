@@ -1,3 +1,9 @@
+# Overview
+
+This project demonstrates the use of OpenAI's Codex agent + MCPs within a GitHub Actions workflow to generate test data (random numbers) for a Java application.
+
+# Steps
+
 ```shell
 npm install -g @openai/codex@latest
 export CODEX_HOME="$(pwd)/.codex"
