@@ -57,7 +57,7 @@ jobs:
           IMPORTANT:
           - At the end use the filesystem MCP server's write_file tool to write your complete review as a well-formatted markdown file named 'codex_review.md' in the current folder
           - The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc.
-          - Start headers from H2 ## and do not include a title nor list the changed files as they will be automatically included in the resulting comment.
+          - Start headers from H2 ### and do not include a title nor list the changed files as they will be automatically included in the resulting PR comment.
 
           The review should cover:
           1. Overall assessment of the changes
