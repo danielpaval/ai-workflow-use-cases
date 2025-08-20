@@ -52,23 +52,24 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           # Create a comprehensive review prompt
-          REVIEW_PROMPT="Please review this pull request. Here are the changed files and their modifications:
+          REVIEW_PROMPT="Please review this pull request and provide constructive feedback on these changes.
           
-          Changed files: ${{ steps.changed-files.outputs.changed_files }}
-          
-          Please analyze the following diff and provide a code review with:
+          IMPORTANT: At the end use the filesystem MCP server's write_file tool to write your complete review as a well-formatted markdown file named 'codex_review.md' in the current folder. The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc. Make it comprehensive and professional.
+
+          The review should cover:
           1. Overall assessment of the changes
           2. Any potential issues or bugs
           3. Code quality and best practices feedback
           4. Security considerations if applicable
           5. Suggestions for improvement
           
-          Here's the diff:
-          $(cat pr_diff.patch)
+          Here are the changed files and their modifications:
           
-          Please provide constructive feedback on these changes.
+          Changed files: ${{ steps.changed-files.outputs.changed_files }}
           
-          IMPORTANT: At the end use the filesystem MCP server's write_file tool to write your complete review as a well-formatted markdown file named 'codex_review.md' in the current folder. The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc. Make it comprehensive and professional."
+          Here are the Git differences:
+
+          $(cat pr_diff.patch)"
           
           echo "🚀 Running Codex CLI for PR review..."
           echo "=================================="
