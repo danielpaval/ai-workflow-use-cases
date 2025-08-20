@@ -68,7 +68,7 @@ jobs:
           
           Please provide constructive feedback on these changes.
           
-          IMPORTANT: Use the filesystem MCP server's write_file tool to write your complete review as a well-formatted markdown file named 'codex_review.md'. The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc. Make it comprehensive and professional."
+          IMPORTANT: At the end use the filesystem MCP server's write_file tool to write your complete review as a well-formatted markdown file named 'codex_review.md' in the current folder. The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc. Make it comprehensive and professional."
           
           echo "🚀 Running Codex CLI for PR review..."
           echo "=================================="
