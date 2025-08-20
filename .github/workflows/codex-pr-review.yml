@@ -63,8 +63,16 @@ jobs:
           
           Please provide constructive feedback on these changes."
           
+          echo "🚀 Running Codex CLI for PR review..."
+          echo "=================================="
+          
           # Run Codex and capture output
           codex exec --full-auto "$REVIEW_PROMPT" > codex_review_output.txt 2>&1
+          
+          echo "📋 Codex CLI Review Results:"
+          echo "============================"
+          cat codex_review_output.txt
+          echo "============================"
           
           # Read the output and set it as step output (handle multiline content)
           echo "review_content<<EOF" >> $GITHUB_OUTPUT
