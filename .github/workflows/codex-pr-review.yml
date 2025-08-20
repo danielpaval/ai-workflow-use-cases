@@ -1,0 +1,164 @@
+name: OpenAI Codex Pull Request Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  codex-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper diff
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+                  
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get the list of changed files in this PR
+          git diff --name-only origin/${{ github.base_ref }}..HEAD > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+          
+          # Store changed files as environment variable
+          CHANGED_FILES=$(cat changed_files.txt | tr '\n' ' ')
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          
+      - name: Get file diffs
+        run: |
+          # Get the actual diff content for changed files
+          git diff origin/${{ github.base_ref }}..HEAD > pr_diff.patch
+          echo "PR Diff generated:"
+          head -50 pr_diff.patch
+          
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex@latest
+
+      - name: Run Codex CLI for PR review
+        id: codex-review
+        env:
+          CODEX_HOME: ${{ github.workspace }}/.codex
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Create a comprehensive review prompt
+          REVIEW_PROMPT="Please review this pull request. Here are the changed files and their modifications:
+          
+          Changed files: ${{ steps.changed-files.outputs.changed_files }}
+          
+          Please analyze the following diff and provide a code review with:
+          1. Overall assessment of the changes
+          2. Any potential issues or bugs
+          3. Code quality and best practices feedback
+          4. Security considerations if applicable
+          5. Suggestions for improvement
+          
+          Here's the diff:
+          $(cat pr_diff.patch)
+          
+          Please provide constructive feedback on these changes.
+          
+          IMPORTANT: Use the filesystem MCP server to write your complete review as a well-formatted markdown file named 'codex_review.md'. The review should be properly structured with markdown formatting including headers, code blocks, bullet points, etc. Make it comprehensive and professional."
+          
+          echo "🚀 Running Codex CLI for PR review..."
+          echo "=================================="
+          
+          # Run Codex and capture output
+          codex exec --full-auto "$REVIEW_PROMPT" > codex_review_output.txt 2>&1
+          
+          echo "📋 Codex CLI Review Results:"
+          echo "============================"
+          cat codex_review_output.txt
+          echo "============================"
+          
+          # Check if the markdown file was created
+          if [ -f "codex_review.md" ]; then
+            echo "📄 Generated codex_review.md file:"
+            echo "=================================="
+            cat codex_review.md
+            echo "=================================="
+          else
+            echo "⚠️ Warning: codex_review.md file was not created"
+          fi
+          
+          # Read the output and set it as step output (handle multiline content)
+          echo "review_content<<EOF" >> $GITHUB_OUTPUT
+          cat codex_review_output.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Comment PR with review
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Try to read the markdown review file first
+            let reviewContent;
+            let reviewSource = 'workflow logs';
+            
+            if (fs.existsSync('codex_review.md')) {
+              try {
+                reviewContent = fs.readFileSync('codex_review.md', 'utf8');
+                reviewSource = 'markdown file';
+                console.log('✅ Successfully read codex_review.md');
+              } catch (error) {
+                console.log('⚠️ Error reading codex_review.md:', error.message);
+                reviewContent = null;
+              }
+            }
+            
+            // Fallback to the command output if markdown file doesn't exist or can't be read
+            if (!reviewContent) {
+              try {
+                reviewContent = fs.readFileSync('codex_review_output.txt', 'utf8');
+                reviewSource = 'command output';
+                console.log('📄 Using command output as fallback');
+              } catch (error) {
+                reviewContent = 'Unable to read Codex review output. Error: ' + error.message + '\n\nPlease check the workflow logs for the complete review.';
+                reviewSource = 'error fallback';
+              }
+            }
+            
+            // Truncate if too long for GitHub comment (max ~65k chars)
+            let wasTruncated = false;
+            if (reviewContent.length > 60000) {
+              reviewContent = reviewContent.substring(0, 60000) + '\n\n... (Review truncated due to length. Check workflow logs for full review)';
+              wasTruncated = true;
+            }
+            
+            const changedFiles = '${{ steps.changed-files.outputs.changed_files }}';
+            
+            // Build comment body - if we have markdown content, use it directly; otherwise wrap in code block
+            let reviewSection;
+            if (reviewSource === 'markdown file') {
+              reviewSection = reviewContent; // Markdown file is already formatted
+            } else {
+              reviewSection = '```\n' + reviewContent + '\n```'; // Wrap command output in code block
+            }
+            
+            const body = '## 🤖 Codex CLI Code Review\n\n' +
+                         '### Changed Files\n' + 
+                         changedFiles + '\n\n' +
+                         '### Review Results\n' +
+                         reviewSection + '\n\n' +
+                         `*Review source: ${reviewSource}${wasTruncated ? ' (truncated)' : ''}*\n` +
+                         '*This review was automatically generated by OpenAI Codex CLI*';
+
+            // Post comment on PR
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

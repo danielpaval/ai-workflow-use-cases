@@ -1,7 +1,7 @@
-name: OpenAI Codex CLI
+name: OpenAI Codex Test Data Generation
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: 
 
 jobs:
   codex:
@@ -9,19 +9,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install Codex CLI
         run: npm install -g @openai/codex@latest
+
       - name: Run Codex CLI command
         env:
           CODEX_HOME: ${{ github.workspace }}/.codex
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: codex exec --full-auto "Generate a numbers.txt file with up to 10 comma-separated random integers between 1 and 100. Do it by yourself, without using a script, and write to disk using the filesystem MCP server."
+
       - name: Compile Numbers.java
         run: javac Numbers.java
+
       - name: Run Numbers.java
         run: java Numbers
-      
